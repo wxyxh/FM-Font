@@ -9,12 +9,10 @@ def flow_matching_one_step_sampler(
     z_style: torch.Tensor,
     cfg_scale: float = 3.0,
 ):
-    """
-    流匹配单步采样器（等价于极简欧拉积分）。
-    """
+    """One-step flow matching sampler."""
     device = latents.device
     batch_size = latents.shape[0]
-    dtype = latents.dtype # ❗ 确保精度一致
+    dtype = latents.dtype
 
     r = torch.zeros(batch_size, device=device, dtype=dtype)
     t = torch.ones(batch_size, device=device, dtype=dtype)
@@ -34,8 +32,7 @@ def flow_matching_one_step_sampler(
     else:
         v_final = model(latents, r, t, z_glyph=z_glyph, z_style=z_style)
 
-    # SiT 线性路径: z_t = (1-t)x0 + t*x1 -> v = x1 - x0
-    # 在 t=1 时, z_1 = x1, 所以 x0 = z_1 - v
+    # SiT linear path: z_t = (1-t)x0 + t*x1 -> v = x1 - x0
     return latents - v_final
 
 @torch.no_grad()
@@ -47,9 +44,7 @@ def flow_matching_euler_sampler(
     cfg_scale: float = 3.0,
     num_steps: int = 20,
 ):
-    """
-    欧拉采样器。沿着 ODE 轨迹 z' = v(z, t) 反向从 t=1 积分到 t=0。
-    """
+    """Euler sampler for flow matching."""
     device = latents.device
     batch_size = latents.shape[0]
     dtype = latents.dtype
@@ -58,7 +53,6 @@ def flow_matching_euler_sampler(
     dt = 1.0 / num_steps 
     
     for i in range(num_steps):
-        # 当前时间步 t_curr
         t_val = 1.0 - (i * dt)
         t = torch.full((batch_size,), t_val, device=device, dtype=dtype)
         r = torch.zeros_like(t)
@@ -77,8 +71,6 @@ def flow_matching_euler_sampler(
         else:
             v_final = model(z, r, t, z_glyph=z_glyph, z_style=z_style)
 
-        # ❗ 重要：沿着负方向步进（因为是从 t=1 向 t=0 移动）
-        # dz = v * dt_step, 其中 dt_step = - (1.0/num_steps)
         z = z - v_final * dt
 
     return z
