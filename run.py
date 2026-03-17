@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Flow Matching 训练启动脚本
-"""
-
 import os
 import re
 import sys
@@ -11,7 +6,7 @@ import glob
 import subprocess
 
 def get_latest_checkpoint_epoch(checkpoint_dir):
-    """获取最新的 checkpoint epoch"""
+    """Get latest checkpoint epoch."""
     if not os.path.exists(checkpoint_dir):
         return 0
     
@@ -29,47 +24,43 @@ def get_latest_checkpoint_epoch(checkpoint_dir):
 
 
 def main():
-    # 切换到脚本所在目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
     
-    print("[INFO] 正在启动 Flow Matching 训练...")
+    print("[INFO] Starting Flow Matching training...")
     print()
     
-    # 查找 accelerate 命令
+    # Find accelerate
     accelerate_cmd = shutil.which("accelerate")
     if accelerate_cmd is None:
-        print("[ERROR] 找不到 accelerate 命令")
-        print("       请确保已安装: pip install accelerate")
+        print("[ERROR] accelerate not found")
+        print("       Please install: pip install accelerate")
         sys.exit(1)
     
-    print(f"[OK] accelerate 命令: {accelerate_cmd}")
+    print(f"[OK] accelerate: {accelerate_cmd}")
     
-    # 检查训练脚本是否存在
+    # Check train script
     train_script = os.path.join("", "train.py")
     if not os.path.exists(train_script):
-        print(f"[ERROR] 找不到训练脚本 {train_script}")
+        print(f"[ERROR] Train script not found: {train_script}")
         sys.exit(1) 
     
-    # 检测最新的 checkpoint
+    # Detect latest checkpoint
     checkpoint_dir = "checkpoints"
     latest_epoch = get_latest_checkpoint_epoch(checkpoint_dir)
     
-    # 训练参数
-    target_epochs = 1000  # 目标训练轮数
+    target_epochs = 1000
     
     if latest_epoch > 0:
-        # 如果有 checkpoint，从它继续训练
         target_epochs = latest_epoch + target_epochs
-        print(f"[INFO] 发现 checkpoint: epoch {latest_epoch}")
-        print(f"[INFO] 将从 epoch {latest_epoch} 继续训练到 epoch {target_epochs}")
+        print(f"[INFO] Found checkpoint: epoch {latest_epoch}")
+        print(f"[INFO] Resuming from epoch {latest_epoch} to {target_epochs}")
     else:
-        print(f"[INFO] 未找到 checkpoint，将从头开始训练到 epoch {target_epochs}")
+        print(f"[INFO] No checkpoint found, training from scratch to {target_epochs}")
     
-    print("[INFO] 开始训练...")
+    print("[INFO] Starting training...")
     print()
     
-    # 训练命令参数
     cmd = [
         "accelerate", "launch",
         train_script,
@@ -92,15 +83,14 @@ def main():
     print(f"[CMD] {' '.join(cmd)}")
     print()
     
-    # 执行训练
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] 训练失败，退出码: {e.returncode}")
+        print(f"[ERROR] Training failed: {e.returncode}")
         sys.exit(e.returncode)
     
     print()
-    print("[INFO] 训练结束")
+    print("[INFO] Training finished")
 
 
 if __name__ == "__main__":
