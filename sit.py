@@ -1,4 +1,3 @@
-# sit.py
 import torch
 import torch.nn as nn
 import numpy as np
@@ -8,11 +7,9 @@ from timm.models.vision_transformer import PatchEmbed, Attention, Mlp
 def modulate(x, shift, scale):
     return x * (1 + scale.unsqueeze(1)) + shift.unsqueeze(1)
 
-#################################################################################
-#               Embedding Layers for Timesteps                                  #
-#################################################################################            
+#Embedding Layers for Timesteps       
 class TimestepEmbedder(nn.Module):
-    """将标量时间步嵌入为向量表示。"""
+    """Embed scalar timesteps to vectors."""
     def __init__(self, hidden_size, frequency_embedding_size=256):
         super().__init__()
         self.mlp = nn.Sequential(
@@ -24,12 +21,10 @@ class TimestepEmbedder(nn.Module):
     
     @staticmethod
     def positional_embedding(t, dim, max_period=10000):
-        # 强制在 float32 下计算以保证精度
         half = dim // 2
         freqs = torch.exp(
             -math.log(max_period) * torch.arange(start=0, end=half, dtype=torch.float32, device=t.device) / half
         )
-        # 确保 t 也是 float32
         args = t[:, None].float() * freqs[None]
         embedding = torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
         if dim % 2:
@@ -37,15 +32,12 @@ class TimestepEmbedder(nn.Module):
         return embedding
 
     def forward(self, t):
-        # 1. 在 float32 下计算 embedding
         t_freq = self.positional_embedding(t, dim=self.frequency_embedding_size)
-        # 2. 交给 MLP，如果开启了 AMP，这里的 Linear 会自动把输入 cast 到 half
         t_emb = self.mlp(t_freq)
         return t_emb
 
-#################################################################################
-#                                 Core SiT Model                                #
-#################################################################################
+
+#SiT Model
 
 class CrossAttention(nn.Module):
     def __init__(self, hidden_size, num_heads):
@@ -62,16 +54,13 @@ class CrossAttention(nn.Module):
         self.gate = nn.Parameter(torch.zeros(1))
 
     def forward(self, x, context):
-        # x: (B, N, C)
-        # context: (B, 1, C)
-
         q = self.q_norm(x)
         k = self.k_norm(context)
 
         out, _ = self.attn(
             query=q,
             key=k,
-            value=context,     # 更干净
+            value=context,
             need_weights=False
         )
 
@@ -83,7 +72,7 @@ class SiTBlock(nn.Module):
         super().__init__()
         qk_norm = block_kwargs.get("qk_norm", False)
 
-        # 1. 自注意力 (Self-Attention)
+        # Self-attention
         self.norm1 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
         self.self_attn = Attention(
             hidden_size,
@@ -92,11 +81,11 @@ class SiTBlock(nn.Module):
             qk_norm=qk_norm
         )
 
-        # 2. 字形交叉注意力 (Glyph Cross-Attention) ：用于空间结构约束
+        # Glyph cross-attention
         self.norm_cross_glyph = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
         self.cross_attn_glyph = CrossAttention(hidden_size, num_heads)
 
-        # 3. MLP
+        # MLP
         self.norm2 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
         mlp_hidden_dim = int(hidden_size * mlp_ratio)
         self.mlp = Mlp(
@@ -106,7 +95,7 @@ class SiTBlock(nn.Module):
             drop=0
         )
 
-        # AdaLN 调制：接收融合了时间步和风格特征的 c
+        # AdaLN modulation
         self.adaLN_modulation = nn.Sequential(
             nn.SiLU(),
             nn.Linear(hidden_size, 6 * hidden_size, bias=True)
@@ -114,23 +103,23 @@ class SiTBlock(nn.Module):
 
     def forward(self, x, c, zg_token):
         """
-        x: (B, N, C) - 图像 Patch 序列
-        c: (B, C) - 融合条件 (Time + Style)
-        zg_token: (B, 1, C) - 字形特征 Token
+        x: (B, N, C) - image patches
+        c: (B, C) - fused condition (time + style)
+        zg_token: (B, 1, C) - glyph token
         """
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = (
             self.adaLN_modulation(c).chunk(6, dim=-1)
         )
 
-        # 第一步：自注意力 (受全局条件 c 调制)
+        # Self-attention
         x = x + gate_msa.unsqueeze(1) * self.self_attn(
             modulate(self.norm1(x), shift_msa, scale_msa)
         )
 
-        # 第二步：字形交叉注意力 (注入空间骨架信息)
+        # Cross-attention
         x = x + self.cross_attn_glyph(self.norm_cross_glyph(x), zg_token)
 
-        # 第三步：MLP (受全局条件 c 调制)
+        # MLP
         x = x + gate_mlp.unsqueeze(1) * self.mlp(
             modulate(self.norm2(x), shift_mlp, scale_mlp)
         )
@@ -167,10 +156,7 @@ class FeatureEmbedder(nn.Module):
         return self.projector(x)
 
 class ConditionFuser(nn.Module):
-    """
-    专门用于融合时间步和其他特征的模块。
-    采用 Concat + Linear 投影，比简单 Add 具有更强的学习能力。
-    """
+    """Fuse timestep with other features."""
     def __init__(self, hidden_size):
         super().__init__()
         self.fuser = nn.Sequential(
@@ -180,8 +166,7 @@ class ConditionFuser(nn.Module):
         )
 
     def forward(self, t_emb, feature_emb):
-        # t_emb: (B, C), feature_emb: (B, C)
-        combined = torch.cat([t_emb, feature_emb], dim=-1) # (B, 2*C)
+        combined = torch.cat([t_emb, feature_emb], dim=-1)
         return self.fuser(combined)
     
 class SiT(nn.Module):
@@ -209,9 +194,9 @@ class SiT(nn.Module):
         self.zg_embedder = FeatureEmbedder(zg_dim, hidden_size)
         self.zs_embedder = FeatureEmbedder(zs_dim, hidden_size)
         
-        # --- 新增：专门的融合投影层 ---
-        self.style_fuser = ConditionFuser(hidden_size) # 融合 Time + Style
-        self.glyph_fuser = ConditionFuser(hidden_size) # 融合 Time + Glyph
+        # Fusion layers
+        self.style_fuser = ConditionFuser(hidden_size)
+        self.glyph_fuser = ConditionFuser(hidden_size)
 
         num_patches = self.x_embedder.num_patches
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, hidden_size), requires_grad=False)
@@ -234,7 +219,7 @@ class SiT(nn.Module):
         pos_embed = get_2d_sincos_pos_embed(self.pos_embed.shape[-1], int(self.x_embedder.num_patches ** 0.5))
         self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
 
-        # 零初始化 adaLN 和 Final Layer 以加速收敛
+        # Zero initialization
         for block in self.blocks:
             nn.init.constant_(block.adaLN_modulation[-1].weight, 0)
             nn.init.constant_(block.adaLN_modulation[-1].bias, 0)
@@ -253,39 +238,29 @@ class SiT(nn.Module):
         return imgs
 
     def forward(self, x, r, t, z_glyph=None, z_style=None):
-        """
-        - 字形特征 (z_glyph) 用于 Cross-Attention。
-        - 字体风格 (z_style) 融合进 AdaLN 的条件变量 c。
-        """
-        # 1. Image Patch Embedding
+        """Forward pass with glyph and style conditions."""
         x = self.x_embedder(x) + self.pos_embed
 
-        # 2. 条件特征提取
-        t_emb = self.t_embedder(t)             # (B, C)
-        zg_emb = self.zg_embedder(z_glyph)     # (B, C)
-        zs_emb = self.zs_embedder(z_style)     # (B, C)
+        t_emb = self.t_embedder(t)
+        zg_emb = self.zg_embedder(z_glyph)
+        zs_emb = self.zs_embedder(z_style)
 
-        # 3. 构造方案 3 的注入信号
-        # 全局调制 c = 时间 + 风格 (AdaLN)
-        c = self.style_fuser(t_emb, zs_emb)     # (B, C)
+        # Global condition
+        c = self.style_fuser(t_emb, zs_emb)
         
-        # 空间引导：时间 + 字形 (使得交叉注意力能够根据时间步调整对结构的关注度)
-        zg_fused = self.glyph_fuser(t_emb, zg_emb) # (B, C)
-        zg_token = zg_fused.unsqueeze(1)           # (B, 1, C)
+        # Spatial guidance
+        zg_fused = self.glyph_fuser(t_emb, zg_emb)
+        zg_token = zg_fused.unsqueeze(1)
         
-        # 4. Transformer Blocks
+        # Transformer Blocks
         for block in self.blocks:
             x = block(x, c, zg_token)
 
-        # 5. 输出层 (同样受全局条件 c 调制)
         x = self.final_layer(x, c)
         x = self.unpatchify(x)
         return x
 
-#################################################################################
-#                   位置编码辅助函数 (保持不变)                                   #
-#################################################################################
-
+#  Positional Embedding Helpers 
 def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False, extra_tokens=0):
     grid_h = np.arange(grid_size, dtype=np.float32)
     grid_w = np.arange(grid_size, dtype=np.float32)
