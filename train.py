@@ -157,7 +157,7 @@ def main(args):
             gc.collect()
             torch.cuda.empty_cache()
 
-    vae = AutoencoderKL.from_pretrained("./models/stabilityai/sd-vae-ft-mse", local_files_only=True).to(device)
+    vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").to(device)
     vae.eval(); vae.requires_grad_(False)
     loss_fn = SILoss(path_type="linear", time_sampler="logit_normal", label_dropout_prob=args.cfg_prob)
 
