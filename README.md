@@ -153,6 +153,6 @@ This project is for academic research purposes only.
 
 ## References
 
-- [SiT: Scalable diffusion Models with Transformers](https://arxiv.org/abs/2401.08740)
+- [SiT: Scalable diffusion Models with Transformers](https://ieeexplore.ieee.org/document/10377858)
 - [Flow Matching for Generative Modeling](https://arxiv.org/abs/2210.02747)
 - [Rectified Flow](https://arxiv.org/abs/2209.03003)
