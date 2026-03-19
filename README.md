@@ -182,24 +182,6 @@ python run.py
 
 This script automatically detects the latest checkpoint and resumes training.
 
-#### Training Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `--data-dir` | `fonts/train` | Training data directory |
-| `--feature-path` | `hanzi_font_clip_features.pt` | Pre-computed features path |
-| `--moments-path` | `moments.pt` | VAE moments path |
-| `--batch-size` | 128 | Batch size |
-| `--epochs` | 400 | Number of epochs |
-| `--lr` | 1e-4 | Learning rate |
-| `--weight-decay` | 0.01 | Weight decay |
-| `--warmup-steps` | 1000 | Warmup steps |
-| `--grad-accum` | 1 | Gradient accumulation steps |
-| `--cfg-prob` | 0.1 | CFG dropout probability |
-| `--model` | `SiT-L/2` | Model architecture |
-| `--resolution` | 224 | Image resolution |
-| `--mixed-precision` | `bf16` | Mixed precision mode |
-| `--out-dir` | `checkpoints` | Output directory |
 
 ## License
 
