@@ -138,7 +138,7 @@ use_cpu: false
 
 #### 2. Start Training
 
-**For 24GB VRAM (e.g., RTX 3090, A5000):**
+**For 24GB VRAM (e.g., RTX 3090, RTX4090):**
 ```bash
 accelerate launch train.py \
     --data-dir fonts/train \
@@ -189,8 +189,8 @@ This script automatically detects the latest checkpoint and resumes training.
 | `--data-dir` | `fonts/train` | Training data directory |
 | `--feature-path` | `hanzi_font_clip_features.pt` | Pre-computed features path |
 | `--moments-path` | `moments.pt` | VAE moments path |
-| `--batch-size` | 32 | Batch size |
-| `--epochs` | 100 | Number of epochs |
+| `--batch-size` | 128 | Batch size |
+| `--epochs` | 400 | Number of epochs |
 | `--lr` | 1e-4 | Learning rate |
 | `--weight-decay` | 0.01 | Weight decay |
 | `--warmup-steps` | 1000 | Warmup steps |
