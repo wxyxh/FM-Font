@@ -101,51 +101,105 @@ python scripts/encode_hanzi_to_moments.py \
 
 ### Training Model
 
-#### Method 1: Use run.py (Recommended)
+#### 1. Configure Accelerate (Single GPU)
 
 ```bash
-python run.py
+accelerate config
 ```
 
-This script automatically:
+When prompted, select:
+- **Training type**: `No distributed training`
+- **Compute environment**: `This machine`
+- **Mixed precision**: `bf16`
+- **Dynamically飒**`False`
+- **Machine rank**: `0`
+- **Number of machines**: `1`
+- **GPU devices**: `0` (or your GPU device id)
 
-- Detects the latest checkpoint
-- Resumes training from interruption
-- Uses `accelerate` for distributed training
+Or create config file at `~/.cache/huggingface/accelerate/default_config.yaml`:
 
-#### Method 2: Use train.py Directly
+```yaml
+compute_environment: LOCAL_MACHINE
+distributed_type: NO
+downcast_bf16: 'no'
+gpu_ids: all
+machine_rank: 0
+main_training_function: main
+mixed_precision: bf16
+num_machines: 1
+num_processes: 1
+rdzv_backend: static
+same_network: true
+tpu_env: []
+tpu_use_cluster: false
+tpu_use_sudo: false
+use_cpu: false
+```
 
+#### 2. Start Training
+
+**For 24GB VRAM (e.g., RTX 3090, A5000):**
 ```bash
-python train.py \
-    --data-dir data/fonts/train \
+accelerate launch train.py \
+    --data-dir fonts/train \
     --feature-path features/hanzi_font_clip_features.pt \
-    --moments-path ./moments.pt \
+    --moments-path ./fonts/moments.pt \
     --batch-size 128 \
+    --grad-accum 2 \
     --epochs 400 \
     --lr 5e-5 \
+    --weight-decay 0.01 \
+    --warmup-steps 40000 \
+    --cfg-prob 0.1 \
     --model SiT-B/2 \
     --mixed-precision bf16 \
     --out-dir checkpoints
 ```
 
+**For 48GB VRAM (e.g., A100, RTX 6000 Ada):**
+```bash
+accelerate launch train.py \
+    --data-dir fonts/train \
+    --feature-path features/hanzi_font_clip_features.pt \
+    --moments-path ./fonts/moments.pt \
+    --batch-size 256 \
+    --grad-accum 1 \
+    --epochs 400 \
+    --lr 5e-5 \
+    --weight-decay 0.01 \
+    --warmup-steps 40000 \
+    --cfg-prob 0.1 \
+    --model SiT-B/2 \
+    --mixed-precision bf16 \
+    --out-dir checkpoints
+```
+
+#### 3. Alternative: Use run.py (Auto-resume)
+
+```bash
+python run.py
+```
+
+This script automatically detects the latest checkpoint and resumes training.
+
 #### Training Parameters
 
-| Parameter             | Default                         | Description                              |
-| --------------------- | ------------------------------- | ---------------------------------------- |
-| `--data-dir`        | `fonts/train`                 | Training data directory                  |
-| `--feature-path`    | `hanzi_font_clip_features.pt` | Pre-computed features path               |
-| `--moments-path`    | `moments.pt`                  | VAE moments path                         |
-| `--batch-size`      | 128                             | Batch size                               |
-| `--epochs`          | 400                             | Number of epochs                         |
-| `--lr`              | 5e-5                            | Learning rate                            |
-| `--lr-min`          | 1e-7                            | Minimum learning rate (cosine scheduler) |
-| `--scheduler`       | `cosine`                      | Learning rate scheduler                  |
-| `--warmup-ratio`    | 0.05                            | Warmup ratio                             |
-| `--grad-accum`      | 1                               | Gradient accumulation steps              |
-| `--cfg-prob`        | 0.1                             | CFG dropout probability                  |
-| `--model`           | `SiT-B/2`                     | Model architecture                       |
-| `--mixed-precision` | `bf16`                        | Mixed precision mode                     |
-| `--out-dir`         | `checkpoints`                 | Output directory                         |
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--data-dir` | `fonts/train` | Training data directory |
+| `--feature-path` | `hanzi_font_clip_features.pt` | Pre-computed features path |
+| `--moments-path` | `moments.pt` | VAE moments path |
+| `--batch-size` | 32 | Batch size |
+| `--epochs` | 100 | Number of epochs |
+| `--lr` | 1e-4 | Learning rate |
+| `--weight-decay` | 0.01 | Weight decay |
+| `--warmup-steps` | 1000 | Warmup steps |
+| `--grad-accum` | 1 | Gradient accumulation steps |
+| `--cfg-prob` | 0.1 | CFG dropout probability |
+| `--model` | `SiT-L/2` | Model architecture |
+| `--resolution` | 224 | Image resolution |
+| `--mixed-precision` | `bf16` | Mixed precision mode |
+| `--out-dir` | `checkpoints` | Output directory |
 
 ## License
 
