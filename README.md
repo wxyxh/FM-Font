@@ -111,7 +111,7 @@ When prompted, select:
 - **Training type**: `No distributed training`
 - **Compute environment**: `This machine`
 - **Mixed precision**: `bf16`
-- **Dynamically飒**`False`
+- **Dynamically**`False`
 - **Machine rank**: `0`
 - **Number of machines**: `1`
 - **GPU devices**: `0` (or your GPU device id)
