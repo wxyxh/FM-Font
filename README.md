@@ -120,8 +120,8 @@ python train.py \
     --data-dir data/fonts/train \
     --feature-path features/hanzi_font_clip_features.pt \
     --moments-path ./moments.pt \
-    --batch-size 256 \
-    --epochs 1000 \
+    --batch-size 128 \
+    --epochs 400 \
     --lr 5e-5 \
     --model SiT-B/2 \
     --mixed-precision bf16 \
@@ -135,8 +135,8 @@ python train.py \
 | `--data-dir`        | `fonts/train`                 | Training data directory                  |
 | `--feature-path`    | `hanzi_font_clip_features.pt` | Pre-computed features path               |
 | `--moments-path`    | `moments.pt`                  | VAE moments path                         |
-| `--batch-size`      | 256                             | Batch size                               |
-| `--epochs`          | 300                             | Number of epochs                         |
+| `--batch-size`      | 128                             | Batch size                               |
+| `--epochs`          | 400                             | Number of epochs                         |
 | `--lr`              | 5e-5                            | Learning rate                            |
 | `--lr-min`          | 1e-7                            | Minimum learning rate (cosine scheduler) |
 | `--scheduler`       | `cosine`                      | Learning rate scheduler                  |
@@ -144,7 +144,7 @@ python train.py \
 | `--grad-accum`      | 1                               | Gradient accumulation steps              |
 | `--cfg-prob`        | 0.1                             | CFG dropout probability                  |
 | `--model`           | `SiT-B/2`                     | Model architecture                       |
-| `--mixed-precision` | `fp16`                        | Mixed precision mode                     |
+| `--mixed-precision` | `bf16`                        | Mixed precision mode                     |
 | `--out-dir`         | `checkpoints`                 | Output directory                         |
 
 ## License
