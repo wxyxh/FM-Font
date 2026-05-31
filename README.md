@@ -2,16 +2,14 @@
 
 A Chinese font generation project based on SiT (Scalable diffusion Models with Transformers) architecture, using Flow Matching for training.
 
-## Download Data and Features
+## Download Features
 
-Data files and pre-computed features can be downloaded from Baidu NetDisk:
+Pre-computed features can be downloaded from Baidu NetDisk:
 
 https://pan.baidu.com/s/1fREkNLSgvycYzA6M2QktuQ?pwd=aw2g
 
-This includes:
-
-- `hanzi_font_clip_features.pt`: Pre-computed CLIP features
-- Training data (data/fonts/)
+## Download Features
+The dataset used in this study is publicly available and can be downloaded from the following link: https://www.foundertype.com/.
 
 ## File Structure
 
