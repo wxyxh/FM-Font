@@ -8,7 +8,7 @@ Pre-computed features can be downloaded from Baidu NetDisk:
 
 https://pan.baidu.com/s/1fREkNLSgvycYzA6M2QktuQ?pwd=aw2g
 
-## Download Features
+## Download Datasets
 The dataset used in this study is publicly available and can be downloaded from the following link: https://www.foundertype.com/.
 
 ## File Structure
