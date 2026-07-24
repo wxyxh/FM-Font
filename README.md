@@ -1,6 +1,6 @@
 # **FM-Font: Flow Matching with Disentangled Dual-Branch Encoding for Few-shot Chinese Font Generation**
-
-A Chinese font generation project based on SiT (Scalable diffusion Models with Transformers) architecture, using Flow Matching for training.
+Official code implementation based on pytorch for paper, FM-Font: Flow Matching With Disentangled Dual-Branch Encoding for Few-Shot Chinese Font Generation
+https://ieeexplore.ieee.org/abstract/document/11599546
 
 ## Download Features
 
